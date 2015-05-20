@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+
+require 'date'
+
+def fuzzy_time(time)
+
+  if time[-1].split(":").count == 2
+    new_time = "#{time[0]} #{time[1]} #{time[2]} #{Time.now.zone}"
+  else
+    new_time = "#{time[2]} #{time[0]} #{time[1]} #{Time.now.zone}"
+  end
+
+  time = DateTime.parse(new_time).to_time
+  s = (Time.new - time).round
+  m = s / 60
+  h = m / 60
+  d = h / 24
+  mon = d / 30
+  y = mon / 12
+
+  if y > 0
+    "#{y} yr#{(y > 1) ? "s":""}"
+  elsif mon > 0
+    "#{mon} mon#{(mon > 1) ? "s":""}"
+  elsif d > 0
+    "#{d} day#{(d > 1) ? "s":""}"
+  elsif h > 0
+    "#{h} hr#{(h > 1) ? "s":""}"
+  elsif m > 0
+    "#{m} mins#{(m > 1) ? "s":""}"
+  else
+    "#{s} s"
+  end
+
+end
+
+a = []
+ls_out = `ls -lh --color=always --group-directories-first -G`
+ls_out.each_line { |l| a << l.split(" ") }
+a.each do |l|
+  if l.count == 8
+    puts "#{l[0]}	#{fuzzy_time(l[4..6])}	#{l[3]}	#{l[7]}"
+  end
+end
+
+
+# >> -rwxrwxr-x		kryten	 15 s		1022	 [0m[00;38;5;208mlsr[0m
+# >> -rw-rw-r--		kryten	 1 h		1013	 [38;5;160;1mlsr.rb[0m
+# >> -rw-rw-r--		kryten	 3 h		0	 [38;5;253mtemp[0m
