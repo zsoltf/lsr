@@ -42,8 +42,3 @@ a.each do |l|
     puts "#{l[0]}	#{fuzzy_time(l[4..6])}	#{l[3]}	#{l[7]}"
   end
 end
-
-
-# >> -rwxrwxr-x		kryten	 15 s		1022	 [0m[00;38;5;208mlsr[0m
-# >> -rw-rw-r--		kryten	 1 h		1013	 [38;5;160;1mlsr.rb[0m
-# >> -rw-rw-r--		kryten	 3 h		0	 [38;5;253mtemp[0m
