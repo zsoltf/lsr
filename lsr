@@ -27,7 +27,7 @@ def fuzzy_time(time)
   elsif h > 0
     "#{h} hr#{(h > 1) ? "s":""}"
   elsif m > 0
-    "#{m} mins#{(m > 1) ? "s":""}"
+    "#{m} min#{(m > 1) ? "s":""}"
   else
     "#{s} s"
   end
