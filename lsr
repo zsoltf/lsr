@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# coding: utf-8
 
 require 'date'
 
@@ -34,11 +35,58 @@ def fuzzy_time(time)
 
 end
 
+def nice_permissions(perm)
+  perm = perm.gsub "-", " "
+  color_blue = "\e[38;5;110m"
+  color_green = "\e[38;5;29m"
+  color_purple = "\e[38;5;60m"
+  color_pink = "\e[38;5;197m"
+  color_orange = "\e[38;5;208m"
+  color_gray = "\e[38;5;241m"
+  color_yellow = "\e[38;5;220m"
+  kind = perm.slice 0
+  u_r = perm.slice 1
+  u_w = perm.slice 2
+  u_x = perm.slice 3
+  g_r = perm.slice 4
+  g_w = perm.slice 5
+  g_x = perm.slice 6
+  o_r = perm.slice 7
+  o_w = perm.slice 8
+  o_x = perm.slice 9
+  kind = case kind
+         when "d"
+           "#{color_blue}d#{color_gray}"
+         when "l"
+           "#{color_yellow}l#{color_gray}"
+         when"s"
+           "#{color_pink}s#{color_gray}"
+         else
+           "f"
+         end
+  user = "#{color_green}#{u_r}#{color_purple}#{u_w}#{color_orange}#{u_x}#{color_gray}"
+  group = "#{color_green}#{g_r}#{color_purple}#{g_w}#{color_orange}#{g_x}#{color_gray}"
+  other = "#{color_green}#{o_r}#{color_purple}#{o_w}#{color_orange}#{o_x}#{color_gray}"
+  "│#{kind}│#{user}│#{group}│#{other}│"
+end
+
+link_chr = "→"
+color_blue = "\e[38;5;110m"
+color_orange = "\e[38;5;208m"
+color_gray = "\e[38;5;241m"
+color_off = "\e[0m"
+
 a = []
 ls_out = `ls -lh --color=always --group-directories-first -G`
 ls_out.each_line { |l| a << l.split(" ") }
+#puts "#{color_gray}┌─┬───┬───┬───┐"
 a.each do |l|
   if l.count == 8
-    puts "#{l[0]}	#{fuzzy_time(l[4..6])}	#{l[3]}	#{l[7]}"
+    # perm - time - size - name
+    puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]}"
+  elsif l.count == 10
+    # perm - time - size - name - link_chr - link
+    puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
   end
 end
+#puts "#{color_gray}└─┴───┴───┴───┘#{color_off}"
