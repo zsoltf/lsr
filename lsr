@@ -2,12 +2,11 @@
 # coding: utf-8
 
 require 'date'
-require 'pp'
 
 class Ls
 
-  def initialize(dir=".")
-    print(dir)
+  def initialize(args=".")
+    print(args)
   end
 
   def fuzzy_time(time)
@@ -23,6 +22,7 @@ class Ls
     m = s / 60
     h = m / 60
     d = h / 24
+    w = d / 7
     mon = d / 30
     y = mon / 12
 
@@ -30,6 +30,8 @@ class Ls
       "#{y} yr#{(y > 1) ? "s":""}"
     elsif mon > 0
       "#{mon} mon#{(mon > 1) ? "s":""}"
+    elsif w > 0
+      "#{w} week#{(w > 1) ? "s":""}"
     elsif d > 0
       "#{d} day#{(d > 1) ? "s":""}"
     elsif h > 0
@@ -77,28 +79,35 @@ class Ls
     "│#{kind}│#{user}│#{group}│#{other}│"
   end
 
-  def print(dir)
+  def print(args)
     link_chr = "→"
     color_blue = "\e[38;5;110m"
     color_orange = "\e[38;5;208m"
     color_gray = "\e[38;5;241m"
     color_off = "\e[0m"
 
-    a = []
-    ls_out = `ls -lh --color=always --group-directories-first -G #{dir}`
-    ls_out.each_line { |l| a << l.split(" ") }
-    #puts "#{color_gray}┌─┬───┬───┬───┐"
-    a.each do |l|
-      if l.count == 8
-        # perm - time - size - name
-        puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]}"
-      elsif l.count == 10
-        # perm - time - size - name - link_chr - link
-        puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
+    long_list = args.match(/-*l/)
+    ls_out = `ls --color=always --group-directories-first -hCG #{args}`
+
+    if long_list
+      # du_out = `du ./#{args}/`
+      a = []
+      ls_out.each_line { |l| a << l.split(" ") }
+      #puts "#{color_gray}┌─┬───┬───┬───┐"
+      a.each do |l|
+        if l.count == 8
+          # perm - time - size - name
+          puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]}"
+        elsif l.count == 10
+          # perm - time - size - name - link_chr - link
+          puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
+        end
       end
+      #puts "#{color_gray}└─┴───┴───┴───┘#{color_off}"
+    else
+      puts ls_out
     end
-    #puts "#{color_gray}└─┴───┴───┴───┘#{color_off}"
   end
 end
 
-l = Ls.new(ARGV.join(" ").to_s)
+l = Ls.new(ARGV.join(" "))
