@@ -2,91 +2,103 @@
 # coding: utf-8
 
 require 'date'
+require 'pp'
 
-def fuzzy_time(time)
+class Ls
 
-  if time[-1].split(":").count == 2
-    new_time = "#{time[0]} #{time[1]} #{time[2]} #{Time.now.zone}"
-  else
-    new_time = "#{time[2]} #{time[0]} #{time[1]} #{Time.now.zone}"
+  def initialize(dir=".")
+    print(dir)
   end
 
-  time = DateTime.parse(new_time).to_time
-  s = (Time.new - time).round
-  m = s / 60
-  h = m / 60
-  d = h / 24
-  mon = d / 30
-  y = mon / 12
+  def fuzzy_time(time)
 
-  if y > 0
-    "#{y} yr#{(y > 1) ? "s":""}"
-  elsif mon > 0
-    "#{mon} mon#{(mon > 1) ? "s":""}"
-  elsif d > 0
-    "#{d} day#{(d > 1) ? "s":""}"
-  elsif h > 0
-    "#{h} hr#{(h > 1) ? "s":""}"
-  elsif m > 0
-    "#{m} min#{(m > 1) ? "s":""}"
-  else
-    "#{s} s"
+    if time[-1].split(":").count == 2
+      new_time = "#{time[0]} #{time[1]} #{time[2]} #{Time.now.zone}"
+    else
+      new_time = "#{time[2]} #{time[0]} #{time[1]} #{Time.now.zone}"
+    end
+
+    time = DateTime.parse(new_time).to_time
+    s = (Time.new - time).round
+    m = s / 60
+    h = m / 60
+    d = h / 24
+    mon = d / 30
+    y = mon / 12
+
+    if y > 0
+      "#{y} yr#{(y > 1) ? "s":""}"
+    elsif mon > 0
+      "#{mon} mon#{(mon > 1) ? "s":""}"
+    elsif d > 0
+      "#{d} day#{(d > 1) ? "s":""}"
+    elsif h > 0
+      "#{h} hr#{(h > 1) ? "s":""}"
+    elsif m > 0
+      "#{m} min#{(m > 1) ? "s":""}"
+    else
+      "#{s} s"
+    end
+
   end
 
-end
+  def nice_permissions(perm)
+    perm = perm.gsub "-", " "
+    color_blue = "\e[38;5;110m"
+    color_green = "\e[38;5;29m"
+    color_purple = "\e[38;5;60m"
+    color_pink = "\e[38;5;197m"
+    color_orange = "\e[38;5;208m"
+    color_gray = "\e[38;5;241m"
+    color_yellow = "\e[38;5;220m"
+    kind = perm.slice 0
+    u_r = perm.slice 1
+    u_w = perm.slice 2
+    u_x = perm.slice 3
+    g_r = perm.slice 4
+    g_w = perm.slice 5
+    g_x = perm.slice 6
+    o_r = perm.slice 7
+    o_w = perm.slice 8
+    o_x = perm.slice 9
+    kind = case kind
+           when "d"
+             "#{color_blue}d#{color_gray}"
+           when "l"
+             "#{color_yellow}l#{color_gray}"
+           when"s"
+             "#{color_pink}s#{color_gray}"
+           else
+             "f"
+           end
+    user = "#{color_green}#{u_r}#{color_purple}#{u_w}#{color_orange}#{u_x}#{color_gray}"
+    group = "#{color_green}#{g_r}#{color_purple}#{g_w}#{color_orange}#{g_x}#{color_gray}"
+    other = "#{color_green}#{o_r}#{color_purple}#{o_w}#{color_orange}#{o_x}#{color_gray}"
+    "│#{kind}│#{user}│#{group}│#{other}│"
+  end
 
-def nice_permissions(perm)
-  perm = perm.gsub "-", " "
-  color_blue = "\e[38;5;110m"
-  color_green = "\e[38;5;29m"
-  color_purple = "\e[38;5;60m"
-  color_pink = "\e[38;5;197m"
-  color_orange = "\e[38;5;208m"
-  color_gray = "\e[38;5;241m"
-  color_yellow = "\e[38;5;220m"
-  kind = perm.slice 0
-  u_r = perm.slice 1
-  u_w = perm.slice 2
-  u_x = perm.slice 3
-  g_r = perm.slice 4
-  g_w = perm.slice 5
-  g_x = perm.slice 6
-  o_r = perm.slice 7
-  o_w = perm.slice 8
-  o_x = perm.slice 9
-  kind = case kind
-         when "d"
-           "#{color_blue}d#{color_gray}"
-         when "l"
-           "#{color_yellow}l#{color_gray}"
-         when"s"
-           "#{color_pink}s#{color_gray}"
-         else
-           "f"
-         end
-  user = "#{color_green}#{u_r}#{color_purple}#{u_w}#{color_orange}#{u_x}#{color_gray}"
-  group = "#{color_green}#{g_r}#{color_purple}#{g_w}#{color_orange}#{g_x}#{color_gray}"
-  other = "#{color_green}#{o_r}#{color_purple}#{o_w}#{color_orange}#{o_x}#{color_gray}"
-  "│#{kind}│#{user}│#{group}│#{other}│"
-end
+  def print(dir)
+    link_chr = "→"
+    color_blue = "\e[38;5;110m"
+    color_orange = "\e[38;5;208m"
+    color_gray = "\e[38;5;241m"
+    color_off = "\e[0m"
 
-link_chr = "→"
-color_blue = "\e[38;5;110m"
-color_orange = "\e[38;5;208m"
-color_gray = "\e[38;5;241m"
-color_off = "\e[0m"
-
-a = []
-ls_out = `ls -lh --color=always --group-directories-first -G`
-ls_out.each_line { |l| a << l.split(" ") }
-#puts "#{color_gray}┌─┬───┬───┬───┐"
-a.each do |l|
-  if l.count == 8
-    # perm - time - size - name
-    puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]}"
-  elsif l.count == 10
-    # perm - time - size - name - link_chr - link
-    puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
+    a = []
+    ls_out = `ls -lh --color=always --group-directories-first -G #{dir}`
+    ls_out.each_line { |l| a << l.split(" ") }
+    #puts "#{color_gray}┌─┬───┬───┬───┐"
+    a.each do |l|
+      if l.count == 8
+        # perm - time - size - name
+        puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]}"
+      elsif l.count == 10
+        # perm - time - size - name - link_chr - link
+        puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
+      end
+    end
+    #puts "#{color_gray}└─┴───┴───┴───┘#{color_off}"
   end
 end
-#puts "#{color_gray}└─┴───┴───┴───┘#{color_off}"
+
+l = Ls.new(ARGV.join(" ").to_s)
