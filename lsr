@@ -114,9 +114,22 @@ class Ls
     link_chr = "→"
 
     long_list = args.match(/-*l/)
+    no_perm = args.slice!(/-*P/)
     ls_out = `ls --color=always --group-directories-first -hCG #{args}`
 
-    if long_list
+    if long_list && no_perm
+      a = []
+      ls_out.each_line { |l| a << l.split(" ") }
+      a.each do |l|
+        if l.count == 8
+          # time - size - name
+          puts "#{@colors.gray}#{fuzzy_time(l[4..6])}	│ #{colored_size(l[3])}	│ #{l[7]}"
+        elsif l.count == 10
+          # time - size - name - link_chr - link
+          puts "#{@colors.gray}#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
+        end
+      end
+    elsif long_list
       a = []
       ls_out.each_line { |l| a << l.split(" ") }
       a.each do |l|
@@ -132,6 +145,7 @@ class Ls
       puts ls_out
     end
   end
+
 end
 
 colors = {
