@@ -2,11 +2,16 @@
 # coding: utf-8
 
 require 'date'
+require 'ostruct'
 
 class Ls
 
-  def initialize(args=".")
+  def initialize(args=".", colors=nil)
+
+    @colors = OpenStruct.new(colors)
+
     print(args)
+
   end
 
   def fuzzy_time(time)
@@ -46,13 +51,6 @@ class Ls
 
   def nice_permissions(perm)
     perm = perm.gsub "-", " "
-    color_blue = "\e[38;5;110m"
-    color_green = "\e[38;5;29m"
-    color_purple = "\e[38;5;60m"
-    color_pink = "\e[38;5;197m"
-    color_orange = "\e[38;5;208m"
-    color_gray = "\e[38;5;241m"
-    color_yellow = "\e[38;5;220m"
     kind = perm.slice 0
     u_r = perm.slice 1
     u_w = perm.slice 2
@@ -65,49 +63,52 @@ class Ls
     o_x = perm.slice 9
     kind = case kind
            when "d"
-             "#{color_blue}d#{color_gray}"
+             "#{@colors.blue}d#{@colors.gray}"
            when "l"
-             "#{color_yellow}l#{color_gray}"
+             "#{@colors.yellow}l#{@colors.gray}"
            when"s"
-             "#{color_pink}s#{color_gray}"
+             "#{@colors.pink}s#{@colors.gray}"
            else
              "f"
            end
-    user = "#{color_green}#{u_r}#{color_purple}#{u_w}#{color_orange}#{u_x}#{color_gray}"
-    group = "#{color_green}#{g_r}#{color_purple}#{g_w}#{color_orange}#{g_x}#{color_gray}"
-    other = "#{color_green}#{o_r}#{color_purple}#{o_w}#{color_orange}#{o_x}#{color_gray}"
+    user = "#{@colors.green}#{u_r}#{@colors.purple}#{u_w}#{@colors.orange}#{u_x}#{@colors.gray}"
+    group = "#{@colors.green}#{g_r}#{@colors.purple}#{g_w}#{@colors.orange}#{g_x}#{@colors.gray}"
+    other = "#{@colors.green}#{o_r}#{@colors.purple}#{o_w}#{@colors.orange}#{o_x}#{@colors.gray}"
     "│#{kind}│#{user}│#{group}│#{other}│"
   end
 
   def print(args)
     link_chr = "→"
-    color_blue = "\e[38;5;110m"
-    color_orange = "\e[38;5;208m"
-    color_gray = "\e[38;5;241m"
-    color_off = "\e[0m"
 
     long_list = args.match(/-*l/)
     ls_out = `ls --color=always --group-directories-first -hCG #{args}`
 
     if long_list
-      # du_out = `du ./#{args}/`
       a = []
       ls_out.each_line { |l| a << l.split(" ") }
-      #puts "#{color_gray}┌─┬───┬───┬───┐"
       a.each do |l|
         if l.count == 8
           # perm - time - size - name
-          puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]}"
+          puts "#{@colors.gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]}"
         elsif l.count == 10
           # perm - time - size - name - link_chr - link
-          puts "#{color_gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
+          puts "#{@colors.gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
         end
       end
-      #puts "#{color_gray}└─┴───┴───┴───┘#{color_off}"
     else
       puts ls_out
     end
   end
 end
 
-l = Ls.new(ARGV.join(" "))
+colors = {
+  blue: "\e[38;5;110m",
+  green: "\e[38;5;29m",
+  purple: "\e[38;5;60m",
+  pink: "\e[38;5;197m",
+  orange: "\e[38;5;208m",
+  gray: "\e[38;5;241m",
+  yellow: "\e[38;5;220m"
+}
+
+l = Ls.new(ARGV.join(" "), colors)
