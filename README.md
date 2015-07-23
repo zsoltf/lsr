@@ -14,7 +14,7 @@ Clone repo and place lsr somewhere in your path.
     git clone https://github.com/zsoltf/lsr.git
     # inspect unknown files before running them
     vim lsr/lsr  
-    # copy the scrip to your local bin
+    # copy the script to your local bin
     cp lsr/lsr ~/bin
     # in case ~/bin is not in the path or doesn't exist
     mkdir ~/bin
