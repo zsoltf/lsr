@@ -11,11 +11,13 @@ Supports standard ls options with the addition of -P to hide permissions in a lo
 
 Clone repo and place lsr somewhere in your path.
 
-    mkdir bin src
-    git clone https://github.com/zsoltf/lsr.git src/lsr
-    cd !$
-    vim lsr  # inspect unknown files from the internets
-    cp lsr ~/bin
+    git clone https://github.com/zsoltf/lsr.git
+    # inspect unknown files before running them
+    vim lsr/lsr  
+    # copy the scrip to your local bin
+    cp lsr/lsr ~/bin
+    # in case ~/bin is not in the path or doesn't exist
+    mkdir ~/bin
     echo 'export PATH:$PATH:$HOME/bin' >> ~/.bashrc
 
 ## Screenshots
