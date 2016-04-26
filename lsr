@@ -3,53 +3,56 @@
 
 require 'date'
 require 'ostruct'
+require 'pry'
 
-class Ls
+class Entry
 
-  def initialize(args=".", colors=nil)
+  def initialize entry, options = {}
+    @entry, @options = entry, options
+    @colors = OpenStruct.new({
+      blue: "\e[38;5;110m",
+      green: "\e[38;5;29m",
+      purple: "\e[38;5;60m",
+      pink: "\e[38;5;197m",
+      orange: "\e[38;5;208m",
+      gray: "\e[38;5;241m",
+      gray1: "\e[38;5;238m",
+      gray2: "\e[38;5;242m",
+      gray3: "\e[38;5;244m",
+      gray4: "\e[38;5;246m",
+      gray5: "\e[38;5;248m",
+      gray6: "\e[38;5;250m",
+      gray7: "\e[38;5;254m",
+      green1: "\e[38;5;29m",
+      green2: "\e[38;5;107m",
+      green3: "\e[38;5;108m",
+      blue1: "\e[38;5;60m",
+      blue2: "\e[38;5;67m",
+      blue3: "\e[38;5;110m",
+      blue4: "\e[38;5;81m",
+      off:   "\e[0m"
+    })
 
-    @colors = OpenStruct.new(colors)
-
-    print(args)
-
+    parse
   end
 
-  def fuzzy_time(time)
-
-    if time[-1].split(":").count == 2
-      new_time = "#{time[0]} #{time[1]} #{time[2]} #{Time.now.zone}"
-    else
-      new_time = "#{time[2]} #{time[0]} #{time[1]} #{Time.now.zone}"
-    end
-
-    time = DateTime.parse(new_time).to_time
-    s = (Time.new - time).round
-    m = s / 60
-    h = m / 60
-    d = h / 24
-    w = d / 7
-    mon = d / 30
-    y = mon / 12
-
-    if y > 0
-      "#{@colors.gray1}#{y} yr#{(y > 1) ? "s":""}#{@colors.gray}"
-    elsif mon > 0
-      "#{@colors.gray2}#{mon} mon#{(mon > 1) ? "s":""}#{@colors.gray}"
-    elsif w > 0
-      "#{@colors.gray3}#{w} week#{(w > 1) ? "s":""}#{@colors.gray}"
-    elsif d > 0
-      "#{@colors.gray4}#{d} day#{(d > 1) ? "s":""}#{@colors.gray}"
-    elsif h > 0
-      "#{@colors.gray5}#{h} hr#{(h > 1) ? "s":""}#{@colors.gray}"
-    elsif m > 0
-      "#{@colors.gray6}#{m} min#{(m > 1) ? "s":""}#{@colors.gray}"
-    else
-      "#{@colors.gray7}#{s} s#{@colors.gray}"
-    end
-
+  def parse
+    @entry = long_list(@entry) if @options[:long]
   end
 
-  def nice_permissions(perm)
+  def long_list elements
+    elements = elements.split(' ')
+    if elements.size > 2
+      elements[0] = process_perm(elements[0])
+      elements[4] = process_size(elements[4])
+      elements[5..7] = process_time(elements[5..7])
+      elements[6..-1] = process_name(elements[6..-1])
+      #binding.pry
+    end
+    elements.join(' │ ')
+  end
+
+  def process_perm perm
     perm = perm.gsub "-", " "
     kind = perm.slice 0
     u_r = perm.slice 1
@@ -74,102 +77,129 @@ class Ls
     user = "#{@colors.green}#{u_r}#{@colors.purple}#{u_w}#{@colors.orange}#{u_x}#{@colors.gray}"
     group = "#{@colors.green}#{g_r}#{@colors.purple}#{g_w}#{@colors.orange}#{g_x}#{@colors.gray}"
     other = "#{@colors.green}#{o_r}#{@colors.purple}#{o_w}#{@colors.orange}#{o_x}#{@colors.gray}"
-    "│#{kind}│#{user}│#{group}│#{other}│"
+
+    "#{@colors.gray}│#{kind}│#{user}│#{group}│#{other}#{@colors.off}"
   end
 
-  def colored_size(size)
+  def process_size size
     s = size.split("K").first.split("M").first.to_i
 
-    if size.end_with?("K")
+    size = size.center(6)
+
+    if size.strip.end_with?("K")
       case s
       when 1..3
-        "#{@colors.blue1}#{size}#{@colors.gray}"
-      when 4
-        "#{@colors.blue}  ∙ #{@colors.gray}"
+        "#{@colors.blue1}#{size}#{@colors.off}"
       when 5..99
-        "#{@colors.blue1}#{size}#{@colors.gray}"
+        "#{@colors.blue1}#{size}#{@colors.off}"
       when 100..499
-        "#{@colors.blue2}#{size}#{@colors.gray}"
+        "#{@colors.blue2}#{size}#{@colors.off}"
       when 500..1000
-        "#{@colors.blue3}#{size}#{@colors.gray}"
+        "#{@colors.blue3}#{size}#{@colors.off}"
       else
-        "#{@colors.blue4}#{size}#{@colors.gray}"
+        "#{@colors.blue4}#{size}#{@colors.off}"
       end
-    elsif size.end_with?("M")
+    elsif size.strip.end_with?("M")
       case s
       when 1..99
-        "#{@colors.green1}#{size}#{@colors.gray}"
+        "#{@colors.green1}#{size}#{@colors.off}"
       when 100..499
-        "#{@colors.green2}#{size}#{@colors.gray}"
+        "#{@colors.green2}#{size}#{@colors.off}"
       else
-        "#{@colors.green3}#{size}#{@colors.gray}"
+        "#{@colors.green3}#{size}#{@colors.off}"
       end
+    elsif s == 0
+      "#{@colors.blue}  ∙   #{@colors.off}"
     else
-      "#{@colors.gray}#{size}#{@colors.gray}"
+      "#{@colors.gray}#{size}#{@colors.off}"
     end
 
   end
 
-  def print(args)
-    link_chr = "→"
+  def process_time time
 
-    long_list = args.match(/-*l/)
-    no_perm = args.slice!(/-*P/)
-    ls_out = `ls --color=always --group-directories-first -hCG #{args}`
-
-    if long_list && no_perm
-      a = []
-      ls_out.each_line { |l| a << l.split(" ") }
-      a.each do |l|
-        if l.count == 8
-          # time - size - name
-          puts "#{@colors.gray}#{fuzzy_time(l[4..6])}	│ #{colored_size(l[3])}	│ #{l[7]}"
-        elsif l.count == 10
-          # time - size - name - link_chr - link
-          puts "#{@colors.gray}#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
-        end
-      end
-    elsif long_list
-      a = []
-      ls_out.each_line { |l| a << l.split(" ") }
-      a.each do |l|
-        if l.count == 8
-          # perm - time - size - name
-          puts "#{@colors.gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{colored_size(l[3])}	│ #{l[7]}"
-        elsif l.count == 10
-          # perm - time - size - name - link_chr - link
-          puts "#{@colors.gray}#{nice_permissions(l[0])}	#{fuzzy_time(l[4..6])}	│ #{l[3]}	│ #{l[7]} #{link_chr} #{l[9]}"
-        end
-      end
+    if time[-1].split(":").count == 2
+      new_time = "#{time[0]} #{time[1]} #{time[2]} #{Time.now.zone}"
     else
-      puts ls_out
+      new_time = "#{time[2]} #{time[0]} #{time[1]} #{Time.now.zone}"
     end
-    puts "\e[0m"
+
+    time = DateTime.parse(new_time).to_time
+    s = (Time.new - time).round
+    m = s / 60
+    h = m / 60
+    d = h / 24
+    w = d / 7
+    mon = d / 30
+    y = mon / 12
+
+    if y > 0
+      [ @colors.gray1, y,
+        " yr#{(y > 1) ? "s":""}".center(5),
+        @colors.off ].join
+    elsif mon > 0
+      [ @colors.gray2, mon, 
+        " mon#{(mon > 1) ? "s":""}".center(5),
+        @colors.off ].join
+    elsif w > 0
+      [ @colors.gray3, w, 
+        " wk#{(w > 1) ? "s":""}".center(5),
+        @colors.off ].join
+    elsif d > 0
+      "#{@colors.gray4}#{d} day#{(d > 1) ? "s":""}#{@colors.off}"
+    elsif h > 0
+      "#{@colors.gray5}#{h} hr#{(h > 1) ? "s":""}#{@colors.off}"
+    elsif m > 0
+      "#{@colors.gray6}#{m} min#{(m > 1) ? "s":""}#{@colors.off}"
+    else
+      "#{@colors.gray7}#{s} sec#{@colors.off}"
+    end
+
+  end
+
+  def process_name name
+    name.join(' ') if name.respond_to? 'join'
+  end
+
+  def to_s
+    @entry.to_s
+  end
+end
+
+class Ls
+
+  def initialize args='.'
+    args = '.' if args.empty?
+    parse args
+    print
+  end
+
+  def parse args
+    options = parse_options args
+
+    list = `ls -1h #{args}`
+    list = list.split("\n").map {|e| Entry.new(e, options)}
+
+    if options[:long]
+      #binding.pry
+      puts "long listing"
+    end
+
+    @list = list
+  end
+
+  def parse_options args
+    options = {}
+    options[:long] = args.match(/-*l/)
+    options[:columns] = args.slice!(/-*C/)
+    options
+  end
+
+  def print
+    puts @list
   end
 
 end
 
-colors = {
-  blue: "\e[38;5;110m",
-  green: "\e[38;5;29m",
-  purple: "\e[38;5;60m",
-  pink: "\e[38;5;197m",
-  orange: "\e[38;5;208m",
-  gray: "\e[38;5;241m",
-  gray1: "\e[38;5;238m",
-  gray2: "\e[38;5;242m",
-  gray3: "\e[38;5;244m",
-  gray4: "\e[38;5;246m",
-  gray5: "\e[38;5;248m",
-  gray6: "\e[38;5;250m",
-  gray7: "\e[38;5;254m",
-  green1: "\e[38;5;29m",
-  green2: "\e[38;5;107m",
-  green3: "\e[38;5;108m",
-  blue1: "\e[38;5;60m",
-  blue2: "\e[38;5;67m",
-  blue3: "\e[38;5;110m",
-  blue4: "\e[38;5;81m",
-}
-
-l = Ls.new(ARGV.join(" "), colors)
+Ls.new ARGV.join(' ')
+#binding.pry
